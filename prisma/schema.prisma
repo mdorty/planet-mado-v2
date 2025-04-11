@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String      @id @default(cuid())
+  email      String      @unique
+  name       String?
+  characters Character[]
+}
+
+model Character {
+  id                String   @id @default(cuid())
+  name              String
+  race              String
+  basePowerlevel    Int
+  currentPowerlevel Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  inventory         Item[]
+  attacks           Attack[]
+}
+
+model Item {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  type        String
+  condition   Int?
+  equipped    Boolean   @default(false)
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id])
+}
+
+model Attack {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  category    String
+  damage      Int?
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id])
+}
