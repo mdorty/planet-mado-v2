@@ -2,10 +2,34 @@
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth/next'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import CharacterStats from '@/components/CharacterStats'
 import CharacterInventory from '@/components/CharacterInventory'
 import CharacterAttacks from '@/components/CharacterAttacks'
+import { NextAuthOptions } from 'next-auth'
+import CredentialsProvider from 'next-auth/providers/credentials'
+
+// Define authOptions directly in this file
+const authOptions: NextAuthOptions = {
+  providers: [
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        // This is a placeholder implementation
+        return { id: "1", name: "Test User", email: "test@example.com" }
+      }
+    })
+  ],
+  session: {
+    strategy: 'jwt',
+  },
+  pages: {
+    signIn: '/login',
+  },
+}
 
 export default async function CharacterPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
