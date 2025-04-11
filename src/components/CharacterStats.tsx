@@ -1,109 +1,68 @@
-// src/components/CharacterStats.tsx
-import { type Character, type WeightedClothing } from '@prisma/client'
+// src/app/character/[id]/page.tsx
+import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth/next'
+import { redirect } from 'next/navigation'
+import { authOptions } from '@/app/api/authOptions'
+import CharacterStats from '@/components/CharacterStats'
+import CharacterInventory from '@/components/CharacterInventory'
+import CharacterAttacks from '@/components/CharacterAttacks'
 
-type CharacterWithRelations = Character & {
-  weightedClothing: WeightedClothing | null
-}
-
-interface CharacterStatsProps {
-  character: CharacterWithRelations
-}
-
-export default function CharacterStats({ character }: CharacterStatsProps) {
-  // Calculate power level percentage
-  const percentage = Math.round((character.currentPowerlevel / character.basePowerlevel) * 100)
-  const circleCircumference = 440
-  const strokeDashoffset = circleCircumference - (circleCircumference * percentage / 100)
+export default async function CharacterPage({ params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions)
+  
+  if (!session || !session.user) {
+    redirect('/login')
+  }
+  
+  // Fetch character with related data
+  const character = await prisma.character.findUnique({
+    where: {
+      id: params.id,
+    },
+    include: {
+      inventory: true,
+      attacks: true,
+      weightedClothing: true,
+    }
+  })
+  
+  // Check if character exists and belongs to the user
+  if (!character || character.userId !== session.user.id) {
+    redirect('/dashboard')
+  }
   
   return (
-    <div className="grid grid-cols-1 gap-6">
-      {/* Power Level Display */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h3 className="text-xl font-bold mb-4 text-center">Powerlevel</h3>
-        
-        <div className="relative max-w-[150px] max-h-[150px] mx-auto">
-          <svg className="transform -rotate-90 w-full h-full" viewBox="0 0 150 150">
-            <circle 
-              className="fill-none stroke-gray-200" 
-              cx="75" 
-              cy="75" 
-              r="70" 
-              strokeWidth="8"
-            />
-            <circle 
-              className="fill-none stroke-green-500 stroke-round transition-all duration-500 ease-in-out" 
-              cx="75" 
-              cy="75" 
-              r="70" 
-              strokeWidth="8"
-              strokeLinecap="round"
-              strokeDasharray={circleCircumference}
-              strokeDashoffset={strokeDashoffset}
-            />
-          </svg>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-2xl font-bold text-gray-800">
-            {percentage}%
-          </div>
-        </div>
-        
-        <p className="text-center mt-4">
-          {character.hiddenPowerlevel && (
-            <>
-              {new Intl.NumberFormat().format(character.hiddenPowerlevel)} (
-            </>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-6 text-center">{character.name}</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <CharacterStats character={character} />
+        <CharacterInventory character={character} />
+      </div>
+      
+      <div className="mt-6">
+        <CharacterAttacks character={character} />
+      </div>
+      
+      {(character.lastDeath || character.deathCount > 0 || character.lastDateTrained || character.race === "Namekian") && (
+        <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
+          <h3 className="text-xl font-bold mb-4 text-center">Misc</h3>
+          
+          {character.lastDeath && (
+            <p><strong>Last Death:</strong> {new Date(character.lastDeath).toLocaleString()}</p>
           )}
-          <span id="current-powerlevel">
-            {new Intl.NumberFormat().format(character.currentPowerlevel)}
-          </span>
-          {character.hiddenPowerlevel && ")"}
-          {" / "}
-          {new Intl.NumberFormat().format(character.basePowerlevel)}
-        </p>
-      </div>
-      
-      {/* Basic Info */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h3 className="text-xl font-bold mb-4 text-center">Basic Info</h3>
-        
-        <p><strong>Race:</strong> {character.race}</p>
-        {character.planet && <p><strong>Planet:</strong> {character.planet}</p>}
-        <p><strong>Alignment:</strong> {character.alignment > 0 ? '+' : ''}{character.alignment}</p>
-        <p><strong>Ability Count:</strong> {character.abilityCount}</p>
-        
-        {/* Weighted Clothing Bonus */}
-        {character.weightedClothing && character.weightedClothing.bonusPercent > 0 && (
-          <div className="mt-4">
-            <p><strong>Weighted Clothing:</strong></p>
-            <p>
-              +<span id="weighted-bonus">{character.weightedClothing.bonusPercent}%</span> to powerlevel gains<br />
-              -<span id="weighted-bonus">{character.weightedClothing.bonusPercent}%</span> to dodge<br />
-              +<span id="weighted-bonus">{character.weightedClothing.bonusPercent}%</span> to opponent's dodge
-            </p>
-          </div>
-        )}
-      </div>
-      
-      {/* People You've Been To */}
-      {character.peopleMet && character.peopleMet !== "None" && (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-xl font-bold mb-4 text-center">People You've Been To</h3>
-          <p>{character.peopleMet}</p>
-        </div>
-      )}
-      
-      {/* Jobs */}
-      {character.jobs && (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-xl font-bold mb-4 text-center">Jobs</h3>
-          <p>{character.jobs}</p>
-        </div>
-      )}
-      
-      {/* Description */}
-      {character.description && (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-xl font-bold mb-4 text-center">Description</h3>
-          <p>{character.description}</p>
+          
+          {character.deathCount > 0 && (
+            <p><strong>Number of Deaths:</strong> {character.deathCount}</p>
+          )}
+          
+          {character.lastDateTrained && (
+            <p><strong>Last Date Trained:</strong> {new Date(character.lastDateTrained).toLocaleString()}</p>
+          )}
+          
+          {character.race === "Namekian" && character.lastDateMeditated && (
+            <p><strong>Last Date Meditated:</strong> {new Date(character.lastDateMeditated).toLocaleString()}</p>
+          )}
         </div>
       )}
     </div>
