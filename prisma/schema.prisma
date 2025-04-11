@@ -12,39 +12,72 @@ model User {
   email      String      @unique
   name       String?
   characters Character[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 }
 
 model Character {
-  id                String   @id @default(cuid())
+  id                String           @id @default(cuid())
   name              String
   race              String
+  planet            String?
+  alignment         Int              @default(0)
   basePowerlevel    Int
   currentPowerlevel Int
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  hiddenPowerlevel  Int?
+  description       String?          @db.Text
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  lastDeath         DateTime?
+  deathCount        Int              @default(0)
+  lastDateTrained   DateTime?
+  lastDateMeditated DateTime?        // Specific for Namekian race
+  peopleMet         String?          @db.Text
+  jobs              String?          @db.Text
   userId            String
-  user              User     @relation(fields: [userId], references: [id])
+  user              User             @relation(fields: [userId], references: [id])
   inventory         Item[]
   attacks           Attack[]
+  weightedClothing  WeightedClothing?
+  abilityCount      Int              @default(0)
 }
 
 model Item {
   id          String    @id @default(cuid())
   name        String
-  description String?
+  description String?   @db.Text
   type        String
   condition   Int?
   equipped    Boolean   @default(false)
   characterId String
   character   Character @relation(fields: [characterId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Attack {
-  id          String    @id @default(cuid())
-  name        String
-  description String?
-  category    String
-  damage      Int?
-  characterId String
-  character   Character @relation(fields: [characterId], references: [id])
+  id                  String       @id @default(cuid())
+  name                String
+  description         String?      @db.Text
+  category            String
+  percentDamage       Int?
+  percentCost         Int?
+  isChargeable        Boolean      @default(false)
+  isStun              Boolean      @default(false)
+  stunTurns           Int?
+  stunChancePercent   Int?
+  powerlevelMultiplier Float?
+  characterId         String
+  character           Character    @relation(fields: [characterId], references: [id])
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+}
+
+model WeightedClothing {
+  id             String    @id @default(cuid())
+  bonusPercent   Float
+  characterId    String    @unique
+  character      Character @relation(fields: [characterId], references: [id])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
