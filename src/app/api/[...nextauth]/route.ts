@@ -1,9 +1,11 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaClient } from "@prisma/client";
-import { compare } from "bcrypt";
+// Import these only when you're ready to use them
+// import { PrismaClient } from "@prisma/client";
+// import { compare } from "bcrypt";
 
-const prisma = new PrismaClient();
+// Initialize Prisma when you're ready to use it
+// const prisma = new PrismaClient();
 
 export const authOptions = {
   providers: [
@@ -13,9 +15,11 @@ export const authOptions = {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
-        // Add your authentication logic here
-        // This is a placeholder - you'll need to implement proper login
+      async authorize() {
+        // Simplified authorize function without unused parameters
+        // When you implement real auth, you can add the credentials parameter back
+        
+        // Placeholder - return a test user for now
         return { id: "1", name: "Test User", email: "test@example.com" };
       }
     })
