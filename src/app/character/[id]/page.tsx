@@ -1,11 +1,11 @@
-// app/character/[id]/page.tsx
-import { prisma } from '../../lib/prisma'
+// src/app/character/[id]/page.tsx
+import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth/next'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import CharacterStats from '../../components/CharacterStats'
-import CharacterInventory from '../../components/CharacterInventory'
-import CharacterAttacks from '../../components/CharacterAttacks'
+import CharacterStats from '@/components/CharacterStats'
+import CharacterInventory from '@/components/CharacterInventory'
+import CharacterAttacks from '@/components/CharacterAttacks'
 
 export default async function CharacterPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)

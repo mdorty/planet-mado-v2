@@ -1,5 +1,5 @@
-// app/dashboard/page.tsx
-import { prisma } from '../../lib/prisma'
+// src/app/dashboard/page.tsx
+import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth/next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'

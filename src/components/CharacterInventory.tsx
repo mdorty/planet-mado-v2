@@ -1,4 +1,4 @@
-// components/CharacterInventory.tsx
+// src/components/CharacterInventory.tsx
 import { type Character, type Item } from '@prisma/client'
 
 type CharacterWithInventory = Character & {
