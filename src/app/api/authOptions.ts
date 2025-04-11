@@ -3,7 +3,7 @@ import { type NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
-import bcrypt from 'bcrypt'
+// Removed bcrypt import since it's not being used
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -29,14 +29,9 @@ export const authOptions: NextAuthOptions = {
           return null
         }
         
-        // Since we don't have the password field in our schema yet, you'd need to add it
-        // This is a placeholder for the actual password check
+        // Since we don't have the password field in our schema yet, just return the user
+        // In a real app, you would check the password: 
         // const passwordMatch = await bcrypt.compare(credentials.password, user.password)
-        const passwordMatch = true // For demonstration purposes
-        
-        if (!passwordMatch) {
-          return null
-        }
         
         return {
           id: user.id,

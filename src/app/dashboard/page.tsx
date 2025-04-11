@@ -15,7 +15,7 @@ const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(_credentials) {
         // This is a placeholder implementation
         return { id: "1", name: "Test User", email: "test@example.com" }
       }
@@ -52,7 +52,7 @@ export default async function DashboardPage() {
       
       {characters.length === 0 ? (
         <div className="text-center">
-          <p className="mb-4">You don't have any characters yet.</p>
+          <p className="mb-4">You don&apos;t have any characters yet.</p>
           <Link 
             href="/character/create" 
             className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
