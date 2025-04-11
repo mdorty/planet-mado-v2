@@ -1,3 +1,5 @@
+"use client"
+
 // components/CharacterAttacks.tsx
 import { useState } from 'react'
 import { type Character, type Attack } from '@prisma/client'
