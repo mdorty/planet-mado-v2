@@ -16,9 +16,16 @@ const nextConfig = {
 // Add production-specific configurations
 if (process.env.NODE_ENV === 'production') {
   nextConfig.output = 'standalone'
+  nextConfig.assetPrefix = 'https://game.planetmado.com'
+  nextConfig.images = {
+    unoptimized: true,
+    domains: ['game.planetmado.com'],
+    minimumCacheTTL: 60
+  }
   nextConfig.compress = true
   nextConfig.poweredByHeader = false
   nextConfig.generateEtags = true
+  nextConfig.swcMinify = true
   
   // Cache settings
   nextConfig.headers = async () => [
@@ -32,11 +39,20 @@ if (process.env.NODE_ENV === 'production') {
       ]
     },
     {
-      source: '/favicon.ico',
+      source: '/images/:path*',
       headers: [
         {
           key: 'Cache-Control',
-          value: 'public, max-age=31536000, immutable'
+          value: 'public, max-age=86400, must-revalidate'
+        }
+      ]
+    },
+    {
+      source: '/api/:path*',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'no-store, max-age=0'
         }
       ]
     }

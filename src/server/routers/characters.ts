@@ -43,18 +43,50 @@ export const charactersRouter = router({
       });
     }),
 
-  list: adminProcedure.query(async ({ ctx }) => {
-    return ctx.prisma.character.findMany({
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
+  list: adminProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(100).default(50),
+        cursor: z.string().nullish(),
+        search: z.string().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const limit = input.limit;
+      const cursor = input.cursor;
+      const search = input.search;
+
+      const items = await ctx.prisma.character.findMany({
+        take: limit + 1,
+        where: search ? {
+          OR: [
+            { name: { contains: search } },
+            { race: { contains: search } },
+          ],
+        } : undefined,
+        cursor: cursor ? { id: cursor } : undefined,
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
           },
         },
-      },
-    });
-  }),
+      });
+
+      let nextCursor: typeof cursor | undefined = undefined;
+      if (items.length > limit) {
+        const nextItem = items.pop();
+        nextCursor = nextItem!.id;
+      }
+
+      return {
+        items,
+        nextCursor,
+      };
+    }),
 
   getById: adminProcedure
     .input(z.string().min(1, 'Character ID is required'))

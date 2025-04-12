@@ -53,10 +53,12 @@ export default function AdminPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
 
-  const { data: characters = [], isLoading, error } = trpc.characters.list.useQuery(undefined, {
-    enabled: status === 'authenticated',
-    retry: false
-  })
+  const [searchTerm, setSearchTerm] = useState('');
+  const { data, isLoading, error } = trpc.characters.list.useQuery(
+    { limit: 20, search: searchTerm || undefined },
+    { enabled: status === 'authenticated', retry: false }
+  )
+  const characters = data?.items || []
 
   const deleteCharacter = trpc.characters.delete.useMutation({
     onSuccess: () => {
