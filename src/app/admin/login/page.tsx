@@ -8,34 +8,69 @@ export default function AdminLogin() {
   const router = useRouter()
   const { data: session, status } = useSession()
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    if (status === 'loading') return
+    const handleNavigation = async () => {
+      if (status === 'loading') return
 
-    if (session) {
-      if (session.user?.isAdmin) {
-        router.push('/admin')
-      } else {
-        router.push('/dashboard')
+      if (session?.user) {
+        if (session.user.isAdmin) {
+          await router.replace('/admin')
+        } else {
+          await router.replace('/dashboard')
+        }
       }
     }
+
+    handleNavigation()
   }, [session, status, router])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const formData = new FormData(e.currentTarget)
+    setIsLoading(true)
+    setError('')
     
-    const result = await signIn('credentials', {
-      redirect: false,
-      email: formData.get('email'),
-      password: formData.get('password'),
-    })
+    try {
+      const formData = new FormData(e.currentTarget)
+      const result = await signIn('credentials', {
+        redirect: false,
+        email: formData.get('email'),
+        password: formData.get('password'),
+      })
 
-    if (result?.ok) {
-      router.push('/admin')
-    } else {
-      setError('Invalid email or password')
+      if (!result?.ok) {
+        setError('Invalid email or password')
+        setIsLoading(false)
+        return
+      }
+
+      // Let the useEffect handle the redirect
+      // This prevents the flash of admin login page
+    } catch (error) {
+      console.error('Login error:', error)
+      setError('An error occurred during login')
     }
+
+
+  }
+
+  // Show loading state or redirect user if already authenticated
+  if (status === 'loading' || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-xl">Loading...</div>
+      </div>
+    )
+  }
+
+  // If user is already authenticated and admin, show loading
+  if (session?.user?.isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-xl">Loading...</div>
+      </div>
+    )
   }
 
   return (

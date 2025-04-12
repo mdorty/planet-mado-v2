@@ -1,3 +1,9 @@
+export interface User {
+  id: string
+  name: string | null
+  email: string | null
+}
+
 export interface Character {
   id: string
   name: string
@@ -17,5 +23,6 @@ export interface Character {
   peopleMet?: string | null
   jobs?: string | null
   userId: string
+  user?: User
   abilityCount: number
 }

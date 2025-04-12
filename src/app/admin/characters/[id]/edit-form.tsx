@@ -12,6 +12,7 @@ export default function EditCharacterForm({ id }: { id: string }) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [error, setError] = useState('')
+  const [editableCharacter, setEditableCharacter] = useState<Character | null>(null)
 
   const { data: character, isLoading } = trpc.characters.getById.useQuery(id, {
     enabled: status === 'authenticated',
@@ -33,10 +34,16 @@ export default function EditCharacterForm({ id }: { id: string }) {
     }
   }, [status, router])
 
+  useEffect(() => {
+    if (character) {
+      setEditableCharacter(character)
+    }
+  }, [character])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!session?.user || !character) {
+    if (!session?.user || !editableCharacter) {
       setError('User not authenticated or character data missing')
       return
     }
@@ -44,7 +51,7 @@ export default function EditCharacterForm({ id }: { id: string }) {
     try {
       await updateCharacter.mutateAsync({
         id,
-        data: character
+        data: editableCharacter
       })
     } catch (err) {
       // Error will be handled by onError callback
@@ -53,17 +60,13 @@ export default function EditCharacterForm({ id }: { id: string }) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    if (!character) return
+    if (!editableCharacter) return
 
     const updatedValue = name === 'basePowerlevel' ? parseInt(value) : value
-    const updatedCharacter = {
-      ...character,
+    setEditableCharacter({
+      ...editableCharacter,
       [name]: updatedValue
-    }
-
-    // Update the query cache with the new values
-    // Note: We'll need to use queryClient to update the cache properly
-    queryClient.setQueryData(['characters', 'getById', id], updatedCharacter)
+    })
   }
 
   if (status === 'loading' || isLoading) {
@@ -74,13 +77,21 @@ export default function EditCharacterForm({ id }: { id: string }) {
     return null
   }
 
-  if (!character) {
+  if (!editableCharacter) {
     return <div>Character not found</div>
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Edit Character</h1>
+    <div className="p-6 space-y-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">Edit Character</h1>
+        <button
+          onClick={() => router.push('/admin')}
+          className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Back
+        </button>
+      </div>
 
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -88,77 +99,77 @@ export default function EditCharacterForm({ id }: { id: string }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-lg p-6 shadow-sm">
         <div>
-          <label className="block text-sm font-bold text-black">Name</label>
+          <label className="block text-sm font-bold text-gray-700">Name</label>
           <input
             type="text"
             name="name"
-            value={character?.name || ''}
+            value={editableCharacter?.name || ''}
             onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            className="mt-1 block w-full rounded-md border border-gray-300 bg-white text-gray-900 shadow-sm p-2 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-black">Race</label>
+          <label className="block text-sm font-bold text-gray-700">Race</label>
           <input
             type="text"
             name="race"
-            value={character?.race || ''}
+            value={editableCharacter?.race || ''}
             onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            className="mt-1 block w-full rounded-md border border-gray-300 bg-white text-gray-900 shadow-sm p-2 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-black">Planet</label>
+          <label className="block text-sm font-bold text-gray-700">Planet</label>
           <input
             type="text"
             name="planet"
-            value={character?.planet || ''}
+            value={editableCharacter?.planet || ''}
             onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            className="mt-1 block w-full rounded-md border border-gray-300 bg-white text-gray-900 shadow-sm p-2 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-black">Base Power Level</label>
+          <label className="block text-sm font-bold text-gray-700">Base Power Level</label>
           <input
             type="number"
             name="basePowerlevel"
-            value={character?.basePowerlevel || ''}
+            value={editableCharacter?.basePowerlevel || ''}
             onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            className="mt-1 block w-full rounded-md border border-gray-300 bg-white text-gray-900 shadow-sm p-2 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-black">Description</label>
+          <label className="block text-sm font-bold text-gray-700">Description</label>
           <textarea
             name="description"
-            value={character?.description || ''}
+            value={editableCharacter?.description || ''}
             onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            className="mt-1 block w-full rounded-md border border-gray-300 bg-white text-gray-900 shadow-sm p-2 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
             rows={4}
           />
         </div>
 
         <div className="flex justify-end space-x-4">
           <button
-            type="button"
             onClick={() => router.push('/admin')}
-            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+            type="button"
+            className="px-4 py-2 text-gray-600 hover:text-gray-800"
           >
             Cancel
           </button>
           <button
             type="submit"
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             disabled={updateCharacter.isPending}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
           >
             {updateCharacter.isPending ? 'Saving...' : 'Save Changes'}
           </button>

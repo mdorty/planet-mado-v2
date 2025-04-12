@@ -45,18 +45,24 @@ function DeleteConfirmationModal({ isOpen, characterName, onConfirm, onCancel }:
 }
 
 export default function AdminPage() {
+  const router = useRouter()
+  const { data: session } = useSession({
+    required: true,
+    onUnauthenticated() {
+      router.replace('/admin/login')
+    },
+  })
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; character: Character | null }>({ 
     isOpen: false, 
     character: null 
   })
-  const { data: session, status } = useSession()
-  const router = useRouter()
+
   const queryClient = useQueryClient()
 
   const [searchTerm, setSearchTerm] = useState('');
   const { data, isLoading, error } = trpc.characters.list.useQuery(
     { limit: 20, search: searchTerm || undefined },
-    { enabled: status === 'authenticated', retry: false }
+    { enabled: !!session, retry: false }
   )
   const characters = data?.items || []
 
@@ -68,11 +74,7 @@ export default function AdminPage() {
     },
   })
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/admin/login')
-    }
-  }, [status, router])
+
 
   const handleDelete = async (character: Character): Promise<void> => {
     try {
@@ -82,12 +84,11 @@ export default function AdminPage() {
     }
   }
 
-  if (status === 'loading' || isLoading) {
+  if (isLoading) {
     return <div className="p-6">Loading...</div>
   }
 
-  if (status === 'unauthenticated') {
-    router.push('/admin/login')
+  if (!session?.user?.isAdmin) {
     return null
   }
 
@@ -133,6 +134,9 @@ export default function AdminPage() {
                       Name
                     </th>
                     <th className="px-6 py-3 border-b-2 text-left text-sm font-bold text-gray-900 uppercase">
+                      User
+                    </th>
+                    <th className="px-6 py-3 border-b-2 text-left text-sm font-bold text-gray-900 uppercase">
                       Race
                     </th>
                     <th className="px-6 py-3 border-b-2 text-left text-sm font-bold text-gray-900 uppercase">
@@ -148,6 +152,14 @@ export default function AdminPage() {
                     <tr key={character.id} className="border-b border-gray-200">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {character.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {character.user?.name}
+                        {character.user?.email && (
+                          <span className="block text-xs text-gray-500">
+                            {character.user.email}
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {character.race}
