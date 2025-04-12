@@ -43,12 +43,23 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async redirect({ url, baseUrl }) {
-      // Use token to determine admin status
-      if (url.startsWith(baseUrl)) {
-        const currentUrl = new URL(url)
+      // Ensure the URL is absolute
+      if (url.startsWith('/')) {
+        url = `${baseUrl}${url}`
+      }
+
+      // Ensure baseUrl is properly formatted
+      if (!baseUrl.endsWith('/')) {
+        baseUrl = `${baseUrl}/`
+      }
+
+      // If URL is already absolute and matches baseUrl, or is a relative URL
+      if (url.startsWith(baseUrl) || url.startsWith('/')) {
+        const path = url.startsWith(baseUrl) ? url.slice(baseUrl.length) : url
+        
         // If already redirecting to admin or dashboard, don't redirect again
-        if (currentUrl.pathname === '/admin' || currentUrl.pathname === '/dashboard') {
-          return url
+        if (path === '/admin' || path === '/dashboard') {
+          return url.startsWith('/') ? `${baseUrl}${path.slice(1)}` : url
         }
         
         // Get user from token
@@ -59,11 +70,9 @@ export const authOptions: NextAuthOptions = {
           }
         })
         
-        if (user?.isAdmin) {
-          return `${baseUrl}/admin`
-        }
-        return `${baseUrl}/dashboard`
+        return user?.isAdmin ? `${baseUrl}admin` : `${baseUrl}dashboard`
       }
+      
       return url
     }
   },

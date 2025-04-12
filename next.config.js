@@ -16,12 +16,15 @@ const nextConfig = {
 // Add production-specific configurations
 if (process.env.NODE_ENV === 'production') {
   nextConfig.output = 'standalone'
-  nextConfig.assetPrefix = 'https://game.planetmado.com'
+  nextConfig.distDir = '.next'
   nextConfig.images = {
     unoptimized: true,
     domains: ['game.planetmado.com'],
     minimumCacheTTL: 60
   }
+  // Copy public and static files
+  nextConfig.assetPrefix = ''
+  nextConfig.basePath = ''
   nextConfig.compress = true
   nextConfig.poweredByHeader = false
   nextConfig.generateEtags = true
