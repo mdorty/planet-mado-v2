@@ -4,11 +4,22 @@ import { TRPCProvider } from '@/components/providers/trpc-provider';
 import { SessionProvider } from '@/components/providers/session-provider';
 import { AuthButtons } from '@/components/nav/auth-buttons';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true,
+  adjustFontFallback: true
+});
 
 export const metadata = {
   title: 'Planet Mado RPG',
   description: 'An online DBZ-inspired RPG game',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' }
+    ]
+  },
+  metadataBase: new URL(process.env.NODE_ENV === 'production' ? 'https://game.planetmado.com' : 'http://localhost:3003')
 };
 
 export default function RootLayout({
