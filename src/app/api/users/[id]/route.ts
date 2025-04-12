@@ -6,7 +6,7 @@ import { hash } from 'bcrypt';
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
   
@@ -16,7 +16,7 @@ export async function PUT(
 
   const body = await request.json();
   const { email, name, password, isAdmin } = body;
-  const { id } = params;
+  const { id } = context.params;
 
   const updateData: any = {
     email,
@@ -46,7 +46,7 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
   
@@ -54,7 +54,7 @@ export async function DELETE(
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = context.params;
 
   await prisma.user.delete({
     where: { id },
