@@ -54,7 +54,6 @@ model Character {
   inventory         Item[]
   attacks           Attack[]
   weightedClothing  WeightedClothing?
-  abilityCount      Int              @default(0)
 }
 
 model Item {
