@@ -3,30 +3,21 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth/next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { NextAuthOptions } from 'next-auth'
-import CredentialsProvider from 'next-auth/providers/credentials'
+import { authOptions } from '@/app/api/authOptions'
 
-// Define authOptions directly in this file
-const authOptions: NextAuthOptions = {
-  providers: [
-    CredentialsProvider({
-      name: 'Credentials',
-      credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize() {
-        // This is a placeholder implementation
-        return { id: "1", name: "Test User", email: "test@example.com" }
-      }
-    })
-  ],
-  session: {
-    strategy: 'jwt',
-  },
-  pages: {
-    signIn: '/login',
-  },
+type Character = {
+  id: string;
+  name: string;
+  race: string;
+  currentPowerlevel: number;
+  basePowerlevel: number;
+}
+
+type SessionUser = {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
 }
 
 export default async function DashboardPage() {
@@ -36,28 +27,52 @@ export default async function DashboardPage() {
     redirect('/login')
   }
   
+  const user = session.user as SessionUser
+  if (!user.id) {
+    redirect('/login')
+  }
+
   // Fetch user's characters
   const characters = await prisma.character.findMany({
     where: {
-      userId: session.user.id as string,
+      userId: user.id,
     },
     orderBy: {
       updatedAt: 'desc',
     },
-  })
+    select: {
+      id: true,
+      name: true,
+      race: true,
+      currentPowerlevel: true,
+      basePowerlevel: true,
+    }
+  }) as Character[]
   
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-center">Your Characters</h1>
+    <div className="max-w-7xl mx-auto">
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          Your Characters
+        </h1>
+        <Link 
+          href="/character/create" 
+          className="btn btn-primary"
+        >
+          Create Character
+        </Link>
+      </div>
       
       {characters.length === 0 ? (
-        <div className="text-center">
-          <p className="mb-4">You don&apos;t have any characters yet.</p>
+        <div className="card p-8 text-center">
+          <p className="text-lg mb-6 text-gray-600 dark:text-gray-400">
+            You don&apos;t have any characters yet. Start your journey by creating your first character!
+          </p>
           <Link 
             href="/character/create" 
-            className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
+            className="btn btn-primary inline-block"
           >
-            Create a Character
+            Create Your First Character
           </Link>
         </div>
       ) : (
@@ -68,21 +83,50 @@ export default async function DashboardPage() {
               href={`/character/${character.id}`}
               className="block"
             >
-              <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                <h2 className="text-xl font-bold mb-2">{character.name}</h2>
-                <p className="text-gray-600 mb-2">{character.race}</p>
-                <div className="flex justify-between">
-                  <span>PL: {new Intl.NumberFormat().format(character.currentPowerlevel)}</span>
-                  <span>Level: {calculateLevel(character.currentPowerlevel)}</span>
+              <div className="card card-hover p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-xl">
+                    {character.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold">{character.name}</h2>
+                    <p className="text-gray-600 dark:text-gray-400">{character.race}</p>
+                  </div>
                 </div>
                 
-                <div className="mt-4 w-full bg-gray-200 rounded-full h-2.5">
-                  <div 
-                    className="bg-blue-600 h-2.5 rounded-full" 
-                    style={{ 
-                      width: `${Math.min(100, Math.round((character.currentPowerlevel / character.basePowerlevel) * 100))}%` 
-                    }}
-                  ></div>
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Power Level</span>
+                    <span className="font-medium">{new Intl.NumberFormat().format(character.currentPowerlevel)}</span>
+                  </div>
+                  
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Level</span>
+                    <span className="font-medium">{calculateLevel(character.currentPowerlevel)}</span>
+                  </div>
+                  
+                  <div className="relative pt-1">
+                    <div className="flex mb-2 items-center justify-between">
+                      <div>
+                        <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-primary bg-primary/10">
+                          Power Progress
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-semibold inline-block">
+                          {Math.min(100, Math.round((character.currentPowerlevel / character.basePowerlevel) * 100))}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="overflow-hidden h-2 text-xs flex rounded bg-primary/20">
+                      <div 
+                        className="bg-primary rounded transition-all duration-500 ease-out"
+                        style={{ 
+                          width: `${Math.min(100, Math.round((character.currentPowerlevel / character.basePowerlevel) * 100))}%` 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Link>

@@ -2,14 +2,32 @@
 
 // src/components/CharacterAttacks.tsx
 import { useState } from 'react'
-import { type Character, type Attack } from '@prisma/client'
 
-type CharacterWithAttacks = Character & {
+interface Attack {
+  id: string
+  name: string
+  description: string
+  damage: number
+  kiCost: number
+  characterId: string
+  percentDamage: number
+  percentCost: number
+  isChargeable: boolean
+  isStun: boolean
+  stunTurns: number
+  stunChancePercent: number
+  powerlevelMultiplier: number
+  category: 'Physical' | 'Ki' | 'Special'
+}
+
+interface Character {
+  id: string
+  name: string
   attacks: Attack[]
 }
 
 interface CharacterAttacksProps {
-  character: CharacterWithAttacks
+  character: Character
 }
 
 export default function CharacterAttacks({ character }: CharacterAttacksProps) {

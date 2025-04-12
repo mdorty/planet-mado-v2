@@ -1,12 +1,25 @@
 'use client'
 
-import { signIn } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function AdminLogin() {
   const router = useRouter()
+  const { data: session, status } = useSession()
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (status === 'loading') return
+
+    if (session) {
+      if (session.user?.isAdmin) {
+        router.push('/admin')
+      } else {
+        router.push('/dashboard')
+      }
+    }
+  }, [session, status, router])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -14,14 +27,14 @@ export default function AdminLogin() {
     
     const result = await signIn('credentials', {
       redirect: false,
-      username: formData.get('username'),
+      email: formData.get('email'),
       password: formData.get('password'),
     })
 
     if (result?.ok) {
       router.push('/admin')
     } else {
-      setError('Invalid username or password')
+      setError('Invalid email or password')
     }
   }
 
@@ -41,17 +54,18 @@ export default function AdminLogin() {
           )}
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="username" className="sr-only">
-                Username
+              <label htmlFor="email" className="sr-only">
+                Email
               </label>
               <input
-                id="username"
-                name="username"
-                type="text"
-                autoComplete="username"
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Username"
+                placeholder="Email"
+                defaultValue="admin@planetmado.com"
               />
             </div>
             <div>

@@ -3,6 +3,14 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { trpc } from '@/utils/trpc'
+
+type SessionUser = {
+  id: string
+  name?: string | null
+  email?: string | null
+  image?: string | null
+}
 
 export default function NewCharacterPage() {
   const { data: session, status } = useSession()
@@ -16,7 +24,6 @@ export default function NewCharacterPage() {
     planet: '',
     basePowerlevel: 100,
     description: '',
-    userId: ''
   })
 
   if (status === 'loading') {
@@ -28,27 +35,33 @@ export default function NewCharacterPage() {
     return null
   }
 
+  const createCharacter = trpc.characters.create.useMutation({
+    onSuccess: () => {
+      router.push('/admin')
+    },
+    onError: (error) => {
+      setError(error.message)
+    },
+  })
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
+    if (!session?.user) {
+      setError('User not authenticated')
+      setLoading(false)
+      return
+    }
+
     try {
-      const response = await fetch('/api/admin/characters', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+      await createCharacter.mutateAsync({
+        ...formData,
+        userId: (session.user as SessionUser).id
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to create character')
-      }
-
-      router.push('/admin')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      // Error will be handled by onError callback
     } finally {
       setLoading(false)
     }
@@ -65,7 +78,7 @@ export default function NewCharacterPage() {
   return (
     <div className="max-w-2xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Create New Character</h1>
+        <h1 className="text-3xl font-bold text-black">Create New Character</h1>
         <button
           onClick={() => router.push('/admin')}
           className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
@@ -80,27 +93,27 @@ export default function NewCharacterPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="mt-6 space-y-6 bg-white rounded p-6 shadow">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Name</label>
+          <label className="block text-sm font-bold text-black">Name</label>
           <input
             type="text"
             name="name"
             value={formData.name}
             onChange={handleChange}
             required
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="mt-2 block w-full rounded border p-2 text-black bg-white"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Race</label>
+          <label className="block text-sm font-bold text-black">Race</label>
           <select
             name="race"
             value={formData.race}
             onChange={handleChange}
             required
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="mt-2 block w-full rounded border p-2 text-black bg-white"
           >
             <option value="">Select a race</option>
             <option value="Human">Human</option>
@@ -112,18 +125,18 @@ export default function NewCharacterPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Planet</label>
+          <label className="block text-sm font-bold text-black">Planet</label>
           <input
             type="text"
             name="planet"
             value={formData.planet}
             onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="mt-2 block w-full rounded border p-2 text-black bg-white"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Base Power Level</label>
+          <label className="block text-sm font-bold text-black">Base Power Level</label>
           <input
             type="number"
             name="basePowerlevel"
@@ -131,32 +144,22 @@ export default function NewCharacterPage() {
             onChange={handleChange}
             required
             min="1"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="mt-2 block w-full rounded border p-2 text-black bg-white"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Description</label>
+          <label className="block text-sm font-bold text-black">Description</label>
           <textarea
             name="description"
             value={formData.description}
             onChange={handleChange}
             rows={4}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="mt-2 block w-full rounded border p-2 text-black bg-white"
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">User ID</label>
-          <input
-            type="text"
-            name="userId"
-            value={formData.userId}
-            onChange={handleChange}
-            required
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
-        </div>
+
 
         <div className="flex justify-end">
           <button

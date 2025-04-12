@@ -10,10 +10,12 @@ datasource db {
 
 model User {
   id            String    @id @default(cuid())
-  email         String?   @unique
+  email         String    @unique
   name          String?
+  password      String
   emailVerified DateTime?
   image         String?
+  isAdmin       Boolean   @default(false)
   characters    Character[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -26,14 +28,6 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Admin {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model Character {
@@ -54,6 +48,7 @@ model Character {
   lastDateMeditated DateTime?        // Specific for Namekian race
   peopleMet         String?          @db.Text
   jobs              String?          @db.Text
+  abilityCount      Int              @default(0)
   userId            String
   user              User             @relation(fields: [userId], references: [id])
   inventory         Item[]
