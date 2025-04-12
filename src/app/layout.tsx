@@ -1,6 +1,6 @@
 import './globals.css';
 import { Inter } from 'next/font/google';
-import { TRPCProvider } from '@/components/providers/trpc-provider';
+import { TRPCProvider } from './providers';
 import { SessionProvider } from '@/components/providers/session-provider';
 import { AuthButtons } from '@/components/nav/auth-buttons';
 

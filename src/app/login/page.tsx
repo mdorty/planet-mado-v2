@@ -31,28 +31,36 @@ export default function LoginPage() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      setLoading(false);
+      return;
+    }
+
     try {
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
+        callbackUrl: '/dashboard',
       });
 
-      if (result?.error) {
-        setError('Invalid email or password');
-      } else {
-        // Check if user is admin and redirect accordingly
-        const response = await fetch('/api/auth/session');
-        const session = await response.json();
-        
-        if (session?.user?.isAdmin) {
-          router.push('/admin');
-        } else {
-          router.push('/dashboard');
-        }
+      if (!result) {
+        setError('An error occurred during login');
+        setLoading(false);
+        return;
       }
+
+      if (result.error) {
+        setError('Invalid email or password');
+        setLoading(false);
+        return;
+      }
+
+      // The redirect will be handled by the useEffect above when the session updates
     } catch (err) {
-      setError('An error occurred during login');
+      console.error('Login error:', err);
+      setError('An unexpected error occurred');
     } finally {
       setLoading(false);
     }

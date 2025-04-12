@@ -76,37 +76,46 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null
+          console.log('Missing email or password');
+          return null;
         }
         
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email
-          },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            isAdmin: true,
-            password: true
+        try {
+          const user = await prisma.user.findUnique({
+            where: {
+              email: credentials.email
+            },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              isAdmin: true,
+              password: true
+            }
+          });
+          
+          if (!user) {
+            console.log('User not found:', credentials.email);
+            return null;
           }
-        })
-        
-        if (!user) {
-          return null
-        }
-        
-        const passwordMatch = await bcrypt.compare(credentials.password, user.password)
-        
-        if (!passwordMatch) {
-          return null
-        }
-        
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          isAdmin: user.isAdmin
+          
+          const passwordMatch = await bcrypt.compare(credentials.password, user.password);
+          
+          if (!passwordMatch) {
+            console.log('Password mismatch for user:', credentials.email);
+            return null;
+          }
+          
+          console.log('Login successful for user:', credentials.email, 'isAdmin:', user.isAdmin);
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            isAdmin: user.isAdmin
+          };
+        } catch (error) {
+          console.error('Authorization error:', error);
+          return null;
         }
       }
     })

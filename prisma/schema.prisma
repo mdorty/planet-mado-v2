@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -49,11 +50,61 @@ model Character {
   peopleMet         String?          @db.Text
   jobs              String?          @db.Text
   abilityCount      Int              @default(0)
-  userId            String
+
   user              User             @relation(fields: [userId], references: [id])
+  userId            String
   inventory         Item[]
   attacks           Attack[]
   weightedClothing  WeightedClothing?
+}
+
+model Map {
+  id              String     @id @default(cuid())
+  name            String     @unique
+  gravityMultiplier Float    @default(1.0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  exits           MapExit[]
+  tiles           MapTile[]
+}
+
+model MapExit {
+  id              String     @id @default(cuid())
+  exitX           Int
+  exitY           Int
+  entryX          Int
+  entryY          Int
+  destinationMap  String
+  map             Map        @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  mapId           String
+}
+
+model MapTile {
+  id              String     @id @default(cuid())
+  x               Int
+  y               Int
+  tileType        String     // enum: grass, forest, beach, water, mountain, town, road, snake way, building, desert, plains, cave, sky, blank
+  description     String?    @db.Text
+  image           String?
+  isBuilding      Boolean    @default(false)
+  buildingId      String?
+  map             Map        @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  mapId           String
+  interior        BuildingInterior?
+  items           ItemOnTile[]
+
+  @@unique([mapId, x, y])
+}
+
+model BuildingInterior {
+  id              String     @id @default(cuid())
+  x               Int
+  y               Int
+  tileType        String
+  image           String?
+  isExitTile      Boolean    @default(false)
+  mapTile         MapTile    @relation(fields: [mapTileId], references: [id], onDelete: Cascade)
+  mapTileId       String     @unique
 }
 
 model Item {
@@ -61,12 +112,26 @@ model Item {
   name        String
   description String?   @db.Text
   type        String
+  image       String?
   condition   Int?
   equipped    Boolean   @default(false)
   characterId String
   character   Character @relation(fields: [characterId], references: [id])
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  tiles       ItemOnTile[]
+}
+
+model ItemOnTile {
+  id              String     @id @default(cuid())
+  quantity        Int        @default(1)
+  condition       Int        @default(100)
+  item            Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId          String
+  mapTile         MapTile    @relation(fields: [mapTileId], references: [id], onDelete: Cascade)
+  mapTileId       String
+
+  @@unique([itemId, mapTileId])
 }
 
 model Attack {

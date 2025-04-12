@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { trpc } from '@/utils/trpc'
 
 type User = {
   id: string
@@ -19,9 +20,10 @@ type UserFormData = {
 }
 
 export function UserManagement() {
-  const [users, setUsers] = useState<User[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: users, isLoading, error, refetch } = trpc.users.list.useQuery(undefined, {
+    enabled: true
+  })
+
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [formData, setFormData] = useState<UserFormData>({
     email: '',
@@ -30,62 +32,61 @@ export function UserManagement() {
     isAdmin: false,
   })
 
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch('/api/users')
-      if (!response.ok) throw new Error('Failed to fetch users')
-      const data = await response.json()
-      setUsers(data)
-      setIsLoading(false)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-      setIsLoading(false)
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      const url = editingUser 
-        ? `/api/users/${editingUser.id}`
-        : '/api/users'
-      
-      const response = await fetch(url, {
-        method: editingUser ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      })
-
-      if (!response.ok) {
-        const error = await response.text()
-        throw new Error(error)
-      }
-
-      await fetchUsers()
+  const createUser = trpc.users.create.useMutation({
+    onSuccess: () => {
+      setEditingUser(null)
       setFormData({
         email: '',
         name: '',
         password: '',
         isAdmin: false,
       })
+      refetch()
+    },
+  })
+
+  const updateUser = trpc.users.update.useMutation({
+    onSuccess: () => {
       setEditingUser(null)
+      setFormData({
+        email: '',
+        name: '',
+        password: '',
+        isAdmin: false,
+      })
+      refetch()
+    },
+  })
+
+  const deleteUser = trpc.users.delete.useMutation({
+    onSuccess: () => {
+      refetch()
+    },
+  })
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      if (editingUser) {
+        await updateUser.mutateAsync({
+          id: editingUser.id,
+          ...formData,
+        })
+      } else {
+        await createUser.mutateAsync(formData)
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      console.error('Error saving user:', err)
     }
   }
 
   const handleDelete = async (userId: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return
-
     try {
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) throw new Error('Failed to delete user')
-      await fetchUsers()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      await deleteUser.mutateAsync(userId)
+    } catch (err: unknown) {
+      console.error('Error deleting user:', err)
+      refetch() // refetch users on error
     }
   }
 
@@ -93,135 +94,175 @@ export function UserManagement() {
     setEditingUser(user)
     setFormData({
       email: user.email,
-      name: user.name || '',
-      password: '', // Don't populate password field
+      name: user.name ?? '',
+      password: '',
       isAdmin: user.isAdmin,
     })
   }
 
-  useEffect(() => {
-    fetchUsers()
-  }, [])
+  const handleCancel = () => {
+    setEditingUser(null)
+    setFormData({
+      email: '',
+      name: '',
+      password: '',
+      isAdmin: false,
+    })
+  }
 
-  if (isLoading) return <div>Loading...</div>
-  if (error) return <div className="text-red-500">{error}</div>
+
+
+  if (isLoading) {
+    return <div className="p-4 text-gray-800">Loading...</div>
+  }
+
+  if (error) {
+    return <div className="p-4 text-red-500">Error: {error.message}</div>
+  }
 
   return (
-    <div className="space-y-8">
-      <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-        <h3 className="text-lg font-semibold text-gray-900">
-          {editingUser ? 'Edit User' : 'Create New User'}
-        </h3>
-        <div>
-          <label className="block text-sm font-medium mb-1 text-gray-900">Email</label>
-          <input
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="w-full p-2 border rounded bg-white text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            required
-          />
+    <div className="bg-white rounded p-6 shadow">
+      <form onSubmit={handleSubmit} className="mb-8">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-800">
+              Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
+              required
+              className="mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-800">
+              Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              required
+              className="mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-800"
+            >
+              Password {editingUser && '(leave blank to keep current)'}
+            </label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
+              required={!editingUser}
+              className="mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="isAdmin"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Admin Status
+            </label>
+            <select
+              id="isAdmin"
+              name="isAdmin"
+              value={formData.isAdmin ? 'true' : 'false'}
+              onChange={(e) =>
+                setFormData({ ...formData, isAdmin: e.target.value === 'true' })
+              }
+              className="mt-1 block w-full rounded-md bg-gray-50 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-800"
+            >
+              <option value="false">Regular User</option>
+              <option value="true">Admin</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1 text-gray-900">Name</label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full p-2 border rounded bg-white text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1 text-gray-900">
-            {editingUser ? 'New Password (leave blank to keep current)' : 'Password'}
-          </label>
-          <input
-            type="password"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="w-full p-2 border rounded bg-white text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            required={!editingUser}
-          />
-        </div>
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            checked={formData.isAdmin}
-            onChange={(e) => setFormData({ ...formData, isAdmin: e.target.checked })}
-            className="h-4 w-4"
-          />
-          <label className="text-sm font-medium text-gray-900">Admin User</label>
-        </div>
-        <div className="flex space-x-4">
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            {editingUser ? 'Update User' : 'Create User'}
-          </button>
+
+        <div className="mt-4 flex justify-end space-x-2">
           {editingUser && (
             <button
               type="button"
-              onClick={() => {
-                setEditingUser(null)
-                setFormData({
-                  email: '',
-                  name: '',
-                  password: '',
-                  isAdmin: false,
-                })
-              }}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              onClick={handleCancel}
+              className="px-4 py-2 text-gray-700 hover:text-gray-900"
             >
               Cancel
             </button>
           )}
+          <button
+            type="submit"
+            className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+          >
+            {editingUser ? 'Update User' : 'Create User'}
+          </button>
         </div>
       </form>
 
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold mb-4 text-gray-900">Users</h3>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Admin</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Created</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Actions</th>
+      <div className="overflow-x-auto">
+        <table className="min-w-full">
+          <thead>
+            <tr>
+              <th className="border-b px-6 py-3 text-left text-sm font-bold text-gray-800">
+                Email
+              </th>
+              <th className="border-b px-6 py-3 text-left text-sm font-bold text-gray-800">
+                Name
+              </th>
+              <th className="border-b px-6 py-3 text-left text-sm font-bold text-gray-800">
+                Admin
+              </th>
+              <th className="border-b px-6 py-3 text-left text-sm font-bold text-gray-800">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {users?.map((user: User) => (
+              <tr key={user.id} className="border-b">
+                <td className="px-6 py-4 text-sm text-gray-700">{user.email}</td>
+                <td className="px-6 py-4 text-sm text-gray-700">{user.name}</td>
+                <td className="px-6 py-4 text-sm text-gray-700">
+                  {user.isAdmin ? 'Yes' : 'No'}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-700">
+                  <button
+                    onClick={() => handleEdit(user)}
+                    className="mr-2 text-blue-500 hover:text-blue-700"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(user.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-900">{user.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-900">{user.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-900">
-                    {user.isAdmin ? '✓' : ''}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-900">
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap space-x-2">
-                    <button
-                      onClick={() => handleEdit(user)}
-                      className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm font-medium"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(user.id)}
-                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm font-medium"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )
